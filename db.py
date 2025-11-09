@@ -17,7 +17,7 @@ def connect_db():
 def getProblems(topic):
     conn = connect_db()
     c= conn.cursor()
-    c.execute("select * from topics where  topic= ?",(topic,))
+    c.execute("select id, name, link, approach from topics where  topic= ?",(topic,))
     data = c.fetchall()
     conn.close()
     return data
@@ -30,10 +30,10 @@ def addProblem( topic,name, link, approach):
     conn.close()
     return 
 
-def deleteProblem(topic, id):
+def deleteProblem(id):
     conn= connect_db()
     c= conn.cursor()
-    c.execute("delete from topics where topic =? and id =?", (topic, id))
+    c.execute("delete from topics where id =?", (id,))
     conn.commit()
     conn.close()
     return

@@ -1,44 +1,43 @@
 import streamlit as st
 from db import getProblems, addProblem, deleteProblem
 import pandas as pd
-import time
+import re
 
 if "page" not in st.session_state:
     st.session_state.page = "home"
 
-if "current_topic" not in  st.session_state:
-    st.session_state.current_topic =None
+if "current_topic" not in st.session_state:
+    st.session_state.current_topic = None
 
 def openTopic(topic_name):
-    st.session_state.page  = "topic"
+    st.session_state.page = "topic"
     st.session_state.current_topic = topic_name
 
 def goHome():
     st.session_state.page = "home"
     st.session_state.current_topic = None
+
 def homePage():
     st.title("DSA TRACKPAD")
     st.subheader("Dash Board to track Data Structure and Algorithms")
 
     st.markdown("---")
 
-    st.write(" 1 % of Progress every day makes u a better person")
-    topics= [" Modified Binary Search"," Binary Tree Traversals"," DFS"," BFS","Matrix Traversals"," Back Tracking","Dynamic Programming","Prefix Sum",
-            "Two Pointers","Sliding window","Fast and Slow Pointers","Linked List in place Reversal","Monotomic Stack","Top K Elements","Over Lapping Intervals"]
+    st.write("1% of Progress every day makes u a better person")
+    topics = ["Modified Binary Search", "Binary Tree Traversals", "DFS", "BFS", "Matrix Traversals", "Back Tracking", "Dynamic Programming", "Prefix Sum",
+            "Two Pointers", "Sliding window", "Fast and Slow Pointers", "Linked List in-place Reversal", "Monotonic Stack", "Top-K Elements", "Over Lapping Intervals"]
 
-    st.markdown(f"Ther are ***{len(topics)}*** important patterns to learn from DSA")
+    st.markdown(f"There are ***{len(topics)}*** important patterns to learn from DSA")
     st.markdown("---")
-
-
+    
     for i in range(0, len(topics) , 3):
         cols = st.columns(3)
         for j , k in enumerate(cols):
-            idx = i+j
+            idx = i + j
             if idx< len(topics):
                 with k:
-                    if(st.button(topics[idx])):
-                        openTopic(topics[idx])
-
+                    st.button(topics[idx], on_click=openTopic, args=(topics[idx],))
+                    
     st.divider()
     st.title("The popular sheets to Ace DSA:")
     st.markdown("[Striver's SDE sheet](https://takeuforward.org/strivers-a2z-dsa-course/strivers-a2z-dsa-course-sheet-2)")
@@ -49,16 +48,36 @@ def homePage():
 
     st.divider()
 
-
 def topicPage():
     st.title(f"Topic: {st.session_state.current_topic}")
     st.subheader("The Problems solved in this topic is listed below:")
+
     data = getProblems(st.session_state.current_topic)
+
     if data:
         st.subheader("Problems solved till date:")
-        df = pd.DataFrame(data, columns=['ID', 'TOPIC', 'NAME','LINK', 'APPROACH'])
+
+        df = pd.DataFrame(data, columns=['ID','NAME','LINK', 'APPROACH'])
         df.index = df.index + 1
-        st.table(df)
+
+        display_cols = ['S.NO','NAME', 'LINK', 'APPROACH']
+        cols = st.columns(len(display_cols)+1)
+
+        for i ,j in enumerate(display_cols):
+            cols[i].write(f"{j}")
+        cols[-1].write("ACTION")
+        
+        for i, row in df.iterrows():
+            entry_id = row['ID']
+            row['S.NO'] = i
+            cols = st.columns(len(display_cols)+1)
+            for j,col in enumerate(display_cols):
+                cols[j].write(row[col])
+
+            if cols[-1].button("🗑️", key=f"delete_{entry_id}"):
+                deleteProblem(entry_id)
+                st.rerun()
+
     else:
         st.write("Make an attempt to add a new problem into the list")
 
@@ -76,11 +95,19 @@ def topicPage():
             name = st.text_input("Enter the Problem Name")
             link = st.text_input("Enter the problem Link( LeetCode/ GeeksForGeeks/HackerRank...)")
             approach = st.text_area("Note down the brief description of ur optimised approach to solve the problem")
-            submitted= st.form_submit_button("Add Entry")
+            submitted = st.form_submit_button("Add Entry")
 
             if submitted:
-                if name.strip() =="" or link.strip()== "" or approach.strip() == "":
+                pattern = re.compile(
+                    r'^(https?:\/\/)?'                # optional http or https
+                    r'([\da-z\.-]+)\.([a-z\.]{2,6})'  # domain
+                    r'([\/\w\.-])\/?$'                # path
+                )
+                
+                if name.strip() == "" or link.strip() == "" or approach.strip() == "":
                     st.warning("Please fill all the fields")
+                elif not link or not pattern.match(link):
+                    st.error("Please enter a valid URL (e.g. https://example.com)")
                 else:
                     addProblem(st.session_state.current_topic, name, link, approach)
                     st.success('''Data entry added Successfully!!
@@ -89,27 +116,10 @@ def topicPage():
                     st.session_state.show_form = False
                     st.rerun()
 
-    st.divider()
-    st.subheader("Delete an entry:")
-    if "delete_confirm" not in st.session_state:
-        st.session_state.delete_confirm = False
 
-    if st.button("Delete A Entry"):
-        st.session_state.delete_confirm = not st.session_state.delete_confirm
-    if st.session_state.delete_confirm:
-        with st.form("Delete Entry"):
-            delete_num = st.number_input("Enter the ID to be dleted", min_value =1, step =1)
-            deleted = st.form_submit_button("Delete Entry")
-        if deleted:
-            deleteProblem(st.session_state.current_topic, delete_num)
-            st.success("Entry Deleted Successfully!!")
-            time.sleep(1.5)
-            st.session_state.delete_confirm = False
-            st.rerun()
     st.divider()
 
     st.button("Back to home" ,on_click = goHome)
-
 
 if st.session_state.page == "home":
     homePage()
