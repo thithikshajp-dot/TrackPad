@@ -99,9 +99,8 @@ def topicPage():
 
             if submitted:
                 pattern = re.compile(
-                    r'^(https?:\/\/)?'                # optional http or https
-                    r'([\da-z\.-]+)\.([a-z\.]{2,6})'  # domain
-                    r'([\/\w\.-])\/?$'                # path
+                    r'^(https?:\/\/)?([\da-z\.-]+\.[a-z\.]{2,6})(\/.*)?$'
+
                 )
                 
                 if name.strip() == "" or link.strip() == "" or approach.strip() == "":
