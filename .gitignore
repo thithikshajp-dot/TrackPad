@@ -1,1 +1,3 @@
-trackpad.db
+__pycache__/
+*.pyc
+trackPad.db
