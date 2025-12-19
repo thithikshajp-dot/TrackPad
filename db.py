@@ -1,55 +1,61 @@
-import sqlite3
+import psycopg2
 import streamlit as st
-import os
 
-Db_Path = os.path.join(os.getcwd(), "trackPad.db")
+def get_conn():
+    if "db_conn" not in st.session_state:
+        st.session_state.db_conn = psycopg2.connect(
+            st.secrets["DATABASE_URL"]
+            )
+    return st.session_state.db_conn
+    
 
 def init_db():
-    if "db_conn" not in st.session_state:
-        st.session_state.db_conn = sqlite3.connect(Db_Path, check_same_thread=False)
-
-    # test connection
-    try:
-        st.session_state.db_conn.execute("SELECT 1")
-    except sqlite3.ProgrammingError:
-        st.session_state.db_conn = sqlite3.connect(Db_Path, check_same_thread=False)
-
-    # ensure table
-    c = st.session_state.db_conn.cursor()
-    c.execute("""
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS topics (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            topic TEXT,
+            id SERIAL PRIMARY KEY,
+            topic TEXT NOT NULL,
             name TEXT NOT NULL,
-            link TEXT NOT NULL,
+            link TEXT NOT NULL UNIQUE,
             approach TEXT
         )
     """)
-    st.session_state.db_conn.commit()
+    conn.commit()
 
 
 def getProblems(topic):
-    init_db()  # ensure connection exists
-    conn = st.session_state.db_conn
-    c = conn.cursor()
-    c.execute("SELECT id, name, link, approach FROM topics WHERE topic=?", (topic,))
-    return c.fetchall()
+    init_db()
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, name, link, approach FROM topics WHERE topic = %s",
+        (topic,)
+    )
+    return cur.fetchall()
+
 
 
 def addProblem(topic, name, link, approach):
     init_db()
-    conn = st.session_state.db_conn
-    c = conn.cursor()
-    c.execute(
-        "INSERT INTO topics (topic, name, link, approach) VALUES (?, ?, ?, ?)",
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO topics (topic, name, link, approach)
+        VALUES (%s, %s, %s, %s)
+        """,
         (topic, name, link, approach)
     )
     conn.commit()
 
 
 def deleteProblem(id):
-    init_db()
-    conn = st.session_state.db_conn
-    c = conn.cursor()
-    c.execute("DELETE FROM topics WHERE id=?", (id,))
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM topics WHERE id = %s",
+        (id,)
+    )
     conn.commit()
+
