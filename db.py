@@ -4,8 +4,8 @@ import streamlit as st
 def get_conn():
     if "db_conn" not in st.session_state:
         st.session_state.db_conn = psycopg2.connect(
-            st.secrets["DATABASE_URL"]
-            )
+            st.secrets["DATABASE_URL"],
+            sslmode="require")
     return st.session_state.db_conn
     
 
